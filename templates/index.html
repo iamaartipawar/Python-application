@@ -1,0 +1,465 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cloud Service Status</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f6f8fb;
+            color: #172033;
+        }
+
+        /* TOP HEADER */
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid #e3e7ee;
+            padding: 22px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .brand span {
+            color: #635bff;
+        }
+
+        .header-right {
+            font-size: 13px;
+            color: #667085;
+        }
+
+        /* MAIN */
+        .container {
+            width: 84%;
+            max-width: 1150px;
+            margin: 55px auto;
+        }
+
+        .intro {
+            margin-bottom: 35px;
+        }
+
+        .intro h1 {
+            font-size: 38px;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .intro p {
+            color: #667085;
+            font-size: 16px;
+        }
+
+        /* STATUS */
+        .overall {
+            background: #ffffff;
+            border: 1px solid #e1e6ed;
+            border-radius: 14px;
+            padding: 25px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            background: #16a34a;
+            border-radius: 50%;
+            box-shadow: 0 0 0 5px #dcfce7;
+        }
+
+        .status-left h2 {
+            font-size: 19px;
+        }
+
+        .status-left p {
+            margin-top: 5px;
+            color: #667085;
+            font-size: 13px;
+        }
+
+        .updated {
+            color: #667085;
+            font-size: 13px;
+        }
+
+        /* SERVICES */
+        .section-title {
+            margin: 35px 0 14px;
+            font-size: 18px;
+        }
+
+        .service {
+            background: #ffffff;
+            border: 1px solid #e1e6ed;
+            border-radius: 12px;
+            padding: 21px 25px;
+            margin-bottom: 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            transition: 0.2s;
+        }
+
+        .service:hover {
+            border-color: #b8bde8;
+            transform: translateY(-1px);
+        }
+
+        .service-name {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .service-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: #f0efff;
+            color: #635bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .service h3 {
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .service p {
+            font-size: 12px;
+            color: #7a8494;
+        }
+
+        .operational {
+            color: #15803d;
+            background: #ecfdf3;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* INCIDENT */
+        .notice {
+            margin-top: 30px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 12px;
+            padding: 20px 24px;
+        }
+
+        .notice h3 {
+            color: #c2410c;
+            font-size: 15px;
+            margin-bottom: 7px;
+        }
+
+        .notice p {
+            color: #7c2d12;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* METRICS */
+        .numbers {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 35px;
+        }
+
+        .number-box {
+            background: #ffffff;
+            border: 1px solid #e1e6ed;
+            border-radius: 12px;
+            padding: 23px;
+        }
+
+        .number-box small {
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .number-box strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 8px;
+        }
+
+        /* FOOTER */
+        footer {
+            border-top: 1px solid #e3e7ee;
+            margin-top: 60px;
+            padding: 25px 0;
+            text-align: center;
+            color: #8a94a6;
+            font-size: 12px;
+        }
+
+        /* RESPONSIVE */
+        @media(max-width: 700px) {
+
+            .header {
+                padding: 18px 5%;
+            }
+
+            .container {
+                width: 90%;
+                margin-top: 35px;
+            }
+
+            .intro h1 {
+                font-size: 30px;
+            }
+
+            .overall {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .numbers {
+                grid-template-columns: 1fr;
+            }
+
+            .service {
+                gap: 15px;
+            }
+
+            .operational {
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="brand">
+            Cloud<span>Pulse</span>
+        </div>
+
+        <div class="header-right">
+            System Status
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <section class="intro">
+            <h1>Everything is running smoothly.</h1>
+
+            <p>
+                Real-time service availability and infrastructure status.
+            </p>
+        </section>
+
+
+        <!-- OVERALL STATUS -->
+
+        <section class="overall">
+
+            <div class="status-left">
+
+                <div class="status-dot"></div>
+
+                <div>
+                    <h2>All Systems Operational</h2>
+
+                    <p>
+                        No active incidents affecting services.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="updated">
+                Last checked: Just now
+            </div>
+
+        </section>
+
+
+        <!-- SERVICES -->
+
+        <h2 class="section-title">Services</h2>
+
+
+        <div class="service">
+
+            <div class="service-name">
+
+                <div class="service-icon">
+                    API
+                </div>
+
+                <div>
+                    <h3>Application API</h3>
+
+                    <p>
+                        Requests, authentication and application endpoints
+                    </p>
+                </div>
+
+            </div>
+
+            <span class="operational">
+                Operational
+            </span>
+
+        </div>
+
+
+        <div class="service">
+
+            <div class="service-name">
+
+                <div class="service-icon">
+                    DB
+                </div>
+
+                <div>
+                    <h3>Database Service</h3>
+
+                    <p>
+                        Primary data storage and database connectivity
+                    </p>
+                </div>
+
+            </div>
+
+            <span class="operational">
+                Operational
+            </span>
+
+        </div>
+
+
+        <div class="service">
+
+            <div class="service-name">
+
+                <div class="service-icon">
+                    CDN
+                </div>
+
+                <div>
+                    <h3>Content Delivery</h3>
+
+                    <p>
+                        Static assets and global content distribution
+                    </p>
+                </div>
+
+            </div>
+
+            <span class="operational">
+                Operational
+            </span>
+
+        </div>
+
+
+        <div class="service">
+
+            <div class="service-name">
+
+                <div class="service-icon">
+                    AUTH
+                </div>
+
+                <div>
+                    <h3>Authentication</h3>
+
+                    <p>
+                        User identity and access management
+                    </p>
+                </div>
+
+            </div>
+
+            <span class="operational">
+                Operational
+            </span>
+
+        </div>
+
+
+        <!-- DEMO NOTICE -->
+
+        <div class="notice">
+
+            <h3>Maintenance Notice</h3>
+
+            <p>
+                Scheduled infrastructure maintenance may temporarily
+                affect selected services. No action is currently required.
+            </p>
+
+        </div>
+
+
+        <!-- NUMBERS -->
+
+        <div class="numbers">
+
+            <div class="number-box">
+                <small>Current Uptime</small>
+                <strong>99.98%</strong>
+            </div>
+
+            <div class="number-box">
+                <small>Average Response</small>
+                <strong>42 ms</strong>
+            </div>
+
+            <div class="number-box">
+                <small>Active Services</small>
+                <strong>04</strong>
+            </div>
+
+        </div>
+
+
+        <footer>
+            CloudPulse Infrastructure · Service Status Page
+        </footer>
+
+    </main>
+
+</body>
+</html>
+
