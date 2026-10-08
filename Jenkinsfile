@@ -1,67 +1,107 @@
 pipeline {
+
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
-        TARGET_IP   = '32.197.54.30'
-        CRED_ID     = 'ec2-target-key'
-        TARGET_USER = 'ec2-user'
-        APP_DIR     = '/home/ec2-user/python-app'
-        PORT        = '5000'
+        TARGET_IP = '32.197.54.30'
+        CRED_ID   = 'ec2-target-key'
+        APP_DIR   = '/home/ec2-user/python-static-site'
     }
 
     stages {
 
+        // ============================================================
+        // 1. CHECKOUT APPLICATION CODE
+        // ============================================================
         stage('Checkout') {
             steps {
+                echo 'Cloning Python application...'
+
                 git branch: 'main',
-                    url: 'https://github.com/iamaartipawar/Python-application.git'
+                    url: 'https://github.com/iamaartipawar/Python-application'
             }
         }
 
-        stage('Install System Python') {
+        // ============================================================
+        // 2. INSTALL PYTHON AND PIP ON JENKINS SERVER
+        // ============================================================
+        stage('Install Python') {
             steps {
                 sh '''
-                    echo "Checking Python3..."
+                    echo "Installing Python and pip..."
 
-                    if ! command -v python3 >/dev/null 2>&1; then
-                        echo "Python3 not found. Installing..."
-                        sudo yum install -y python3
-                    else
-                        echo "Python3 already installed."
-                        python3 --version
-                    fi
+                    sudo yum install -y python3 python3-pip
+
+                    echo "Python version:"
+                    python3 --version
+
+                    echo "Pip version:"
+                    python3 -m pip --version
                 '''
             }
         }
 
-        stage('Install dependencies') {
+        // ============================================================
+        // 3. CREATE VIRTUAL ENVIRONMENT ON JENKINS
+        // ============================================================
+        stage('Create Virtual Environment') {
             steps {
                 sh '''
-                    echo "Creating virtual environment..."
+                    echo "Creating Python virtual environment..."
 
-                    rm -rf .venv
-                    python3 -m venv .venv
+                    rm -rf venv
 
-                    echo "Upgrading pip..."
-                    .venv/bin/python -m pip install --upgrade pip
+                    python3 -m venv venv
 
-                    echo "Installing application dependencies..."
-                    .venv/bin/python -m pip install -r requirements.txt
+                    echo "Virtual environment Python:"
+                    ./venv/bin/python --version
+
+                    echo "Virtual environment pip:"
+                    ./venv/bin/python -m pip --version
                 '''
             }
         }
 
-        stage('Test') {
+        // ============================================================
+        // 4. INSTALL APPLICATION DEPENDENCIES ON JENKINS
+        // ============================================================
+        stage('Install Dependencies') {
             steps {
                 sh '''
-                    echo "Testing Flask application..."
+                    echo "Installing Python dependencies..."
 
-                    .venv/bin/python -c "from app import app; client = app.test_client(); response = client.get('/'); print('HTTP Status:', response.status_code); assert response.status_code == 200; print('Flask application test passed successfully.')"
+                    ./venv/bin/python -m pip install --upgrade pip
+
+                    ./venv/bin/python -m pip install -r requirements.txt
+
+                    echo "Dependencies installed successfully."
                 '''
             }
         }
 
-        stage('Deploy') {
+        // ============================================================
+        // 5. BUILD / VALIDATE APPLICATION
+        // ============================================================
+        stage('Build / Validate') {
+            steps {
+                sh '''
+                    echo "Validating Python application..."
+
+                    ./venv/bin/python -m py_compile app.py
+
+                    echo "Python application validation successful."
+                '''
+            }
+        }
+
+        // ============================================================
+        // 6. COPY APPLICATION TO TARGET SERVER
+        // ============================================================
+        stage('Deploy to Target Server') {
             steps {
 
                 withCredentials([
@@ -73,82 +113,222 @@ pipeline {
                 ]) {
 
                     sh '''
-                        echo "Connecting to target server: ${TARGET_IP}"
-
-                        echo "Creating application directory..."
+                        echo "Creating application directory on target server..."
 
                         ssh -i "$SSH_KEY" \
                             -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "mkdir -p ${APP_DIR}"
+                            "$SSH_USER@$TARGET_IP" \
+                            "mkdir -p '$APP_DIR'"
 
                         echo "Copying application files..."
 
                         scp -i "$SSH_KEY" \
                             -o StrictHostKeyChecking=no \
-                            app.py requirements.txt \
-                            ${SSH_USER}@${TARGET_IP}:${APP_DIR}/
+                            -r app.py requirements.txt templates static \
+                            "$SSH_USER@$TARGET_IP:$APP_DIR/"
 
-                        scp -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            -r templates static \
-                            ${SSH_USER}@${TARGET_IP}:${APP_DIR}/
-
-                        echo "Installing Python3 on target server..."
-
-                        ssh -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "sudo yum install -y python3"
-
-                        echo "Creating virtual environment..."
-
-                        ssh -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "cd ${APP_DIR} && \
-                             rm -rf .venv && \
-                             python3 -m venv .venv"
-
-                        echo "Installing application dependencies on target..."
-
-                        ssh -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "cd ${APP_DIR} && \
-                             .venv/bin/python -m pip install --upgrade pip && \
-                             .venv/bin/python -m pip install -r requirements.txt"
-
-                        echo "Stopping old application..."
-
-                        ssh -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "sudo fuser -k ${PORT}/tcp 2>/dev/null || true"
-
-                        echo "Starting application..."
-
-                        ssh -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "cd ${APP_DIR} && \
-                             nohup .venv/bin/python app.py > app.log 2>&1 < /dev/null &"
-
-                        sleep 5
-
-                        echo "Checking deployed application..."
-
-                        ssh -i "$SSH_KEY" \
-                            -o StrictHostKeyChecking=no \
-                            ${SSH_USER}@${TARGET_IP} \
-                            "curl -I http://localhost:${PORT}/"
-
-                        echo "======================================"
-                        echo "DEPLOYMENT SUCCESSFUL"
-                        echo "======================================"
+                        echo "Application copied successfully."
                     '''
                 }
             }
+        }
+
+        // ============================================================
+        // 7. SETUP PYTHON APPLICATION ON TARGET SERVER
+        // ============================================================
+        stage('Setup Application on Target') {
+            steps {
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: "${CRED_ID}",
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "Setting up Python application on target server..."
+
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            "$SSH_USER@$TARGET_IP" "
+
+                            echo 'Installing Python...'
+
+                            sudo yum install -y python3
+
+                            cd '$APP_DIR'
+
+                            echo 'Removing old virtual environment...'
+
+                            rm -rf venv
+
+                            echo 'Creating new virtual environment...'
+
+                            python3 -m venv venv
+
+                            echo 'Installing Python dependencies...'
+
+                            ./venv/bin/python -m pip install --upgrade pip
+
+                            ./venv/bin/python -m pip install -r requirements.txt
+
+                            echo 'Python dependencies installed successfully.'
+                        "
+                    '''
+                }
+            }
+        }
+
+        // ============================================================
+        // 8. START APPLICATION WITH GUNICORN
+        // ============================================================
+        stage('Start Application') {
+            steps {
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: "${CRED_ID}",
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "Starting Python application..."
+
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            "$SSH_USER@$TARGET_IP" "
+
+                            cd '$APP_DIR'
+
+                            echo 'Checking existing Gunicorn process...'
+
+                            if [ -f gunicorn.pid ]; then
+
+                                OLD_PID=\\$(cat gunicorn.pid)
+
+                                if kill -0 \\$OLD_PID 2>/dev/null; then
+                                    echo 'Stopping existing Gunicorn process...'
+
+                                    kill \\$OLD_PID
+
+                                    sleep 3
+                                else
+                                    echo 'Old Gunicorn process is not running.'
+                                fi
+
+                                rm -f gunicorn.pid
+
+                            else
+                                echo 'No existing Gunicorn PID file found.'
+                            fi
+
+                            echo 'Starting Gunicorn...'
+
+                            nohup ./venv/bin/gunicorn \
+                                --bind 0.0.0.0:5000 \
+                                --workers 2 \
+                                --pid gunicorn.pid \
+                                app:app \
+                                > app.log 2>&1 < /dev/null &
+
+                            sleep 3
+
+                            echo 'Checking Gunicorn process...'
+
+                            if [ -f gunicorn.pid ]; then
+
+                                NEW_PID=\\$(cat gunicorn.pid)
+
+                                if kill -0 \\$NEW_PID 2>/dev/null; then
+                                    echo 'Gunicorn started successfully.'
+                                    echo "Gunicorn PID: \\$NEW_PID"
+                                else
+                                    echo 'ERROR: Gunicorn failed to start.'
+                                    cat app.log
+                                    exit 1
+                                fi
+
+                            else
+                                echo 'ERROR: Gunicorn PID file was not created.'
+                                cat app.log
+                                exit 1
+                            fi
+
+                            echo 'Checking port 5000...'
+
+                            if ss -lnt | grep -q ':5000'; then
+                                echo 'Port 5000 is listening.'
+                            else
+                                echo 'ERROR: Port 5000 is not listening.'
+                                cat app.log
+                                exit 1
+                            fi
+
+                            echo 'Application log:'
+
+                            tail -20 app.log || true
+
+                            echo 'Application started successfully.'
+                        "
+                    '''
+                }
+            }
+        }
+
+        // ============================================================
+        // 9. VERIFY APPLICATION
+        // ============================================================
+        stage('Verify Application') {
+            steps {
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: "${CRED_ID}",
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "Verifying application..."
+
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            "$SSH_USER@$TARGET_IP" "
+
+                            echo 'Testing health endpoint...'
+
+                            curl -f http://localhost:5000/health
+
+                            echo ''
+
+                            echo 'Application is running successfully.'
+                        "
+                    '''
+                }
+            }
+        }
+    }
+
+    // ================================================================
+    // POST ACTIONS
+    // ================================================================
+    post {
+
+        success {
+            echo 'Python application deployed successfully!'
+        }
+
+        failure {
+            echo 'Python application deployment failed.'
+        }
+
+        always {
+            echo 'Jenkins pipeline execution completed.'
         }
     }
 }
