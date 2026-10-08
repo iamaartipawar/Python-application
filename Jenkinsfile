@@ -56,19 +56,7 @@ pipeline {
                 sh '''
                     echo "Testing Flask application..."
 
-                    .venv/bin/python - <<'PY'
-                    from app import app
-
-                    client = app.test_client()
-                    response = client.get("/")
-
-                    print("HTTP Status:", response.status_code)
-
-                    if response.status_code != 200:
-                        raise SystemExit("Application test failed")
-
-                    print("Flask application test passed successfully.")
-                    PY
+                    .venv/bin/python -c "from app import app; client = app.test_client(); response = client.get('/'); print('HTTP Status:', response.status_code); assert response.status_code == 200; print('Flask application test passed successfully.')"
                 '''
             }
         }
@@ -93,7 +81,7 @@ pipeline {
                             static \
                             ${TARGET_USER}@${TARGET_IP}:${APP_DIR}/
 
-                        echo "Installing Python3 on target server if required..."
+                        echo "Installing Python3 on target server..."
 
                         ssh -o StrictHostKeyChecking=no \
                             ${TARGET_USER}@${TARGET_IP} \
@@ -115,7 +103,7 @@ pipeline {
                             ${TARGET_USER}@${TARGET_IP} \
                             "sudo fuser -k ${PORT}/tcp 2>/dev/null || true"
 
-                        echo "Starting new application..."
+                        echo "Starting application..."
 
                         ssh -o StrictHostKeyChecking=no \
                             ${TARGET_USER}@${TARGET_IP} \
@@ -125,7 +113,7 @@ pipeline {
 
                         sleep 5
 
-                        echo "Checking application..."
+                        echo "Checking deployed application..."
 
                         ssh -o StrictHostKeyChecking=no \
                             ${TARGET_USER}@${TARGET_IP} \
