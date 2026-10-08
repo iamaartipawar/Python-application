@@ -63,63 +63,89 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sshagent(credentials: [env.CRED_ID]) {
+
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: "${CRED_ID}",
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
+                    )
+                ]) {
 
                     sh '''
                         echo "Connecting to target server: ${TARGET_IP}"
 
-                        ssh -o StrictHostKeyChecking=no \
-                            ${TARGET_USER}@${TARGET_IP} \
+                        echo "Creating application directory..."
+
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
                             "mkdir -p ${APP_DIR}"
 
                         echo "Copying application files..."
 
-                        scp -o StrictHostKeyChecking=no -r \
-                            app.py \
-                            requirements.txt \
-                            templates \
-                            static \
-                            ${TARGET_USER}@${TARGET_IP}:${APP_DIR}/
+                        scp -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            app.py requirements.txt \
+                            ${SSH_USER}@${TARGET_IP}:${APP_DIR}/
+
+                        scp -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            -r templates static \
+                            ${SSH_USER}@${TARGET_IP}:${APP_DIR}/
 
                         echo "Installing Python3 on target server..."
 
-                        ssh -o StrictHostKeyChecking=no \
-                            ${TARGET_USER}@${TARGET_IP} \
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
                             "sudo yum install -y python3"
 
-                        echo "Creating virtual environment on target server..."
+                        echo "Creating virtual environment..."
 
-                        ssh -o StrictHostKeyChecking=no \
-                            ${TARGET_USER}@${TARGET_IP} \
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
                             "cd ${APP_DIR} && \
                              rm -rf .venv && \
-                             python3 -m venv .venv && \
+                             python3 -m venv .venv"
+
+                        echo "Installing application dependencies on target..."
+
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
+                            "cd ${APP_DIR} && \
                              .venv/bin/python -m pip install --upgrade pip && \
                              .venv/bin/python -m pip install -r requirements.txt"
 
                         echo "Stopping old application..."
 
-                        ssh -o StrictHostKeyChecking=no \
-                            ${TARGET_USER}@${TARGET_IP} \
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
                             "sudo fuser -k ${PORT}/tcp 2>/dev/null || true"
 
                         echo "Starting application..."
 
-                        ssh -o StrictHostKeyChecking=no \
-                            ${TARGET_USER}@${TARGET_IP} \
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
                             "cd ${APP_DIR} && \
-                             JENKINS_NODE_COOKIE=dontKillMe \
-                             nohup .venv/bin/python app.py > app.log 2>&1 &"
+                             nohup .venv/bin/python app.py > app.log 2>&1 < /dev/null &"
 
                         sleep 5
 
                         echo "Checking deployed application..."
 
-                        ssh -o StrictHostKeyChecking=no \
-                            ${TARGET_USER}@${TARGET_IP} \
+                        ssh -i "$SSH_KEY" \
+                            -o StrictHostKeyChecking=no \
+                            ${SSH_USER}@${TARGET_IP} \
                             "curl -I http://localhost:${PORT}/"
 
-                        echo "Deployment completed successfully."
+                        echo "======================================"
+                        echo "DEPLOYMENT SUCCESSFUL"
+                        echo "======================================"
                     '''
                 }
             }
