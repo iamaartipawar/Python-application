@@ -1,465 +1,415 @@
-
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Webhook Dashboard</title>
 
-    <title>Cloud Service Status</title>
+```
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, Helvetica, sans-serif;
+    }
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    body {
+        min-height: 100vh;
+        background: #0b1120;
+        color: #ffffff;
+    }
+
+    .navbar {
+        height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 7%;
+        border-bottom: 1px solid #26324a;
+        background: #0f172a;
+    }
+
+    .logo {
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    .logo span {
+        color: #f97316;
+    }
+
+    .status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #86efac;
+    }
+
+    .dot {
+        width: 9px;
+        height: 9px;
+        background: #22c55e;
+        border-radius: 50%;
+        box-shadow: 0 0 10px #22c55e;
+    }
+
+    .hero {
+        text-align: center;
+        padding: 70px 20px 45px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border: 1px solid #334155;
+        border-radius: 30px;
+        color: #cbd5e1;
+        background: #111827;
+        font-size: 13px;
+        margin-bottom: 22px;
+    }
+
+    .hero h1 {
+        font-size: 52px;
+        line-height: 1.1;
+        margin-bottom: 20px;
+    }
+
+    .hero h1 span {
+        color: #f97316;
+    }
+
+    .hero p {
+        max-width: 720px;
+        margin: auto;
+        color: #94a3b8;
+        font-size: 17px;
+        line-height: 1.7;
+    }
+
+    .container {
+        width: 86%;
+        max-width: 1150px;
+        margin: auto;
+    }
+
+    .pipeline {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 15px;
+        align-items: center;
+        margin: 45px 0;
+    }
+
+    .stage {
+        background: #111827;
+        border: 1px solid #26324a;
+        border-radius: 14px;
+        padding: 25px 15px;
+        text-align: center;
+        transition: 0.3s;
+    }
+
+    .stage:hover {
+        transform: translateY(-6px);
+        border-color: #f97316;
+    }
+
+    .icon {
+        font-size: 34px;
+        margin-bottom: 13px;
+    }
+
+    .stage h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .stage p {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+
+    .arrow {
+        text-align: center;
+        color: #f97316;
+        font-size: 22px;
+    }
+
+    .section-title {
+        text-align: center;
+        margin: 60px 0 25px;
+    }
+
+    .section-title h2 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+
+    .section-title p {
+        color: #94a3b8;
+    }
+
+    .events {
+        background: #111827;
+        border: 1px solid #26324a;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 50px;
+    }
+
+    .event-header,
+    .event-row {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr 1fr;
+        padding: 18px 25px;
+        align-items: center;
+    }
+
+    .event-header {
+        background: #172033;
+        color: #94a3b8;
+        font-size: 13px;
+    }
+
+    .event-row {
+        border-top: 1px solid #26324a;
+        font-size: 14px;
+    }
+
+    .success {
+        color: #86efac;
+    }
+
+    .pending {
+        color: #facc15;
+    }
+
+    .commit {
+        color: #93c5fd;
+        font-family: monospace;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 70px;
+    }
+
+    .info-card {
+        padding: 25px;
+        background: #111827;
+        border: 1px solid #26324a;
+        border-radius: 14px;
+    }
+
+    .info-card h3 {
+        margin-bottom: 12px;
+    }
+
+    .info-card p {
+        color: #94a3b8;
+        line-height: 1.6;
+        font-size: 14px;
+    }
+
+    footer {
+        text-align: center;
+        padding: 25px;
+        border-top: 1px solid #26324a;
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    @media (max-width: 850px) {
+        .pipeline {
+            grid-template-columns: 1fr;
         }
 
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f6f8fb;
-            color: #172033;
+        .arrow {
+            transform: rotate(90deg);
         }
 
-        /* TOP HEADER */
-        .header {
-            background: #ffffff;
-            border-bottom: 1px solid #e3e7ee;
-            padding: 22px 8%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .info-grid {
+            grid-template-columns: 1fr;
         }
 
-        .brand {
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        .brand span {
-            color: #635bff;
-        }
-
-        .header-right {
-            font-size: 13px;
-            color: #667085;
-        }
-
-        /* MAIN */
-        .container {
-            width: 84%;
-            max-width: 1150px;
-            margin: 55px auto;
-        }
-
-        .intro {
-            margin-bottom: 35px;
-        }
-
-        .intro h1 {
+        .hero h1 {
             font-size: 38px;
-            margin-bottom: 12px;
-            letter-spacing: -1px;
         }
 
-        .intro p {
-            color: #667085;
-            font-size: 16px;
+        .event-header,
+        .event-row {
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
+    }
+</style>
+```
 
-        /* STATUS */
-        .overall {
-            background: #ffffff;
-            border: 1px solid #e1e6ed;
-            border-radius: 14px;
-            padding: 25px 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-        }
-
-        .status-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .status-dot {
-            width: 14px;
-            height: 14px;
-            background: #16a34a;
-            border-radius: 50%;
-            box-shadow: 0 0 0 5px #dcfce7;
-        }
-
-        .status-left h2 {
-            font-size: 19px;
-        }
-
-        .status-left p {
-            margin-top: 5px;
-            color: #667085;
-            font-size: 13px;
-        }
-
-        .updated {
-            color: #667085;
-            font-size: 13px;
-        }
-
-        /* SERVICES */
-        .section-title {
-            margin: 35px 0 14px;
-            font-size: 18px;
-        }
-
-        .service {
-            background: #ffffff;
-            border: 1px solid #e1e6ed;
-            border-radius: 12px;
-            padding: 21px 25px;
-            margin-bottom: 12px;
-
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            transition: 0.2s;
-        }
-
-        .service:hover {
-            border-color: #b8bde8;
-            transform: translateY(-1px);
-        }
-
-        .service-name {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .service-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            background: #f0efff;
-            color: #635bff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .service h3 {
-            font-size: 15px;
-            margin-bottom: 5px;
-        }
-
-        .service p {
-            font-size: 12px;
-            color: #7a8494;
-        }
-
-        .operational {
-            color: #15803d;
-            background: #ecfdf3;
-            padding: 7px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        /* INCIDENT */
-        .notice {
-            margin-top: 30px;
-            background: #fff7ed;
-            border: 1px solid #fed7aa;
-            border-radius: 12px;
-            padding: 20px 24px;
-        }
-
-        .notice h3 {
-            color: #c2410c;
-            font-size: 15px;
-            margin-bottom: 7px;
-        }
-
-        .notice p {
-            color: #7c2d12;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        /* METRICS */
-        .numbers {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 35px;
-        }
-
-        .number-box {
-            background: #ffffff;
-            border: 1px solid #e1e6ed;
-            border-radius: 12px;
-            padding: 23px;
-        }
-
-        .number-box small {
-            color: #667085;
-            font-size: 12px;
-        }
-
-        .number-box strong {
-            display: block;
-            font-size: 28px;
-            margin-top: 8px;
-        }
-
-        /* FOOTER */
-        footer {
-            border-top: 1px solid #e3e7ee;
-            margin-top: 60px;
-            padding: 25px 0;
-            text-align: center;
-            color: #8a94a6;
-            font-size: 12px;
-        }
-
-        /* RESPONSIVE */
-        @media(max-width: 700px) {
-
-            .header {
-                padding: 18px 5%;
-            }
-
-            .container {
-                width: 90%;
-                margin-top: 35px;
-            }
-
-            .intro h1 {
-                font-size: 30px;
-            }
-
-            .overall {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-
-            .numbers {
-                grid-template-columns: 1fr;
-            }
-
-            .service {
-                gap: 15px;
-            }
-
-            .operational {
-                white-space: nowrap;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
-    <header class="header">
-        <div class="brand">
-            Cloud<span>Pulse</span>
+```
+<nav class="navbar">
+    <div class="logo">Webhook<span>Flow</span></div>
+
+    <div class="status">
+        <span class="dot"></span>
+        Jenkins Online
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="badge">CI/CD AUTOMATION • WEBHOOK MONITORING</div>
+
+    <h1>
+        GitHub to <span>Jenkins</span><br>
+        Automation Dashboard
+    </h1>
+
+    <p>
+        A simple demonstration of how a GitHub push triggers a webhook,
+        starts a Jenkins pipeline, runs automated stages and delivers
+        the application.
+    </p>
+</section>
+
+<main class="container">
+
+    <div class="pipeline">
+
+        <div class="stage">
+            <div class="icon">🐙</div>
+            <h3>GitHub</h3>
+            <p>Developer pushes new code</p>
         </div>
 
-        <div class="header-right">
-            System Status
+        <div class="arrow">→</div>
+
+        <div class="stage">
+            <div class="icon">🔔</div>
+            <h3>Webhook</h3>
+            <p>GitHub sends event to Jenkins</p>
         </div>
-    </header>
 
+        <div class="arrow">→</div>
 
-    <main class="container">
+        <div class="stage">
+            <div class="icon">⚙️</div>
+            <h3>Jenkins</h3>
+            <p>Pipeline starts automatically</p>
+        </div>
 
-        <section class="intro">
-            <h1>Python Application With Webhook.</h1>
+    </div>
 
+    <div class="pipeline">
+
+        <div class="stage">
+            <div class="icon">🔨</div>
+            <h3>Build</h3>
+            <p>Application is built</p>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="stage">
+            <div class="icon">🧪</div>
+            <h3>Test</h3>
+            <p>Automated validation runs</p>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="stage">
+            <div class="icon">🚀</div>
+            <h3>Deploy</h3>
+            <p>Application is delivered</p>
+        </div>
+
+    </div>
+
+    <div class="section-title">
+        <h2>Webhook Events</h2>
+        <p>Recent GitHub events received by the CI/CD pipeline</p>
+    </div>
+
+    <div class="events">
+
+        <div class="event-header">
+            <div>EVENT</div>
+            <div>COMMIT</div>
+            <div>STATUS</div>
+            <div>PIPELINE</div>
+        </div>
+
+        <div class="event-row">
+            <div>Push to main</div>
+            <div class="commit">a81f29c</div>
+            <div class="success">✓ Successful</div>
+            <div>Build #24</div>
+        </div>
+
+        <div class="event-row">
+            <div>Push to main</div>
+            <div class="commit">7bd421e</div>
+            <div class="success">✓ Successful</div>
+            <div>Build #23</div>
+        </div>
+
+        <div class="event-row">
+            <div>Pull Request</div>
+            <div class="commit">3fa912b</div>
+            <div class="pending">● Processing</div>
+            <div>Build #22</div>
+        </div>
+
+    </div>
+
+    <div class="section-title">
+        <h2>How It Works</h2>
+        <p>Simple automation from code commit to deployment</p>
+    </div>
+
+    <div class="info-grid">
+
+        <div class="info-card">
+            <h3>01 — Push Code</h3>
             <p>
-                Real-time service availability and infrastructure status.
+                A developer pushes a new change to the GitHub repository.
+                GitHub detects the repository event.
             </p>
-        </section>
-
-
-        <!-- OVERALL STATUS -->
-
-        <section class="overall">
-
-            <div class="status-left">
-
-                <div class="status-dot"></div>
-
-                <div>
-                    <h2>All Systems Operational</h2>
-
-                    <p>
-                        No active incidents affecting services.
-                    </p>
-                </div>
-
-            </div>
-
-            <div class="updated">
-                Last checked: Just now
-            </div>
-
-        </section>
-
-
-        <!-- SERVICES -->
-
-        <h2 class="section-title">Services</h2>
-
-
-        <div class="service">
-
-            <div class="service-name">
-
-                <div class="service-icon">
-                    API
-                </div>
-
-                <div>
-                    <h3>Application API</h3>
-
-                    <p>
-                        Requests, authentication and application endpoints
-                    </p>
-                </div>
-
-            </div>
-
-            <span class="operational">
-                Operational
-            </span>
-
         </div>
 
-
-        <div class="service">
-
-            <div class="service-name">
-
-                <div class="service-icon">
-                    DB
-                </div>
-
-                <div>
-                    <h3>Database Service</h3>
-
-                    <p>
-                        Primary data storage and database connectivity
-                    </p>
-                </div>
-
-            </div>
-
-            <span class="operational">
-                Operational
-            </span>
-
-        </div>
-
-
-        <div class="service">
-
-            <div class="service-name">
-
-                <div class="service-icon">
-                    CDN
-                </div>
-
-                <div>
-                    <h3>Content Delivery</h3>
-
-                    <p>
-                        Static assets and global content distribution
-                    </p>
-                </div>
-
-            </div>
-
-            <span class="operational">
-                Operational
-            </span>
-
-        </div>
-
-
-        <div class="service">
-
-            <div class="service-name">
-
-                <div class="service-icon">
-                    AUTH
-                </div>
-
-                <div>
-                    <h3>Authentication</h3>
-
-                    <p>
-                        User identity and access management
-                    </p>
-                </div>
-
-            </div>
-
-            <span class="operational">
-                Operational
-            </span>
-
-        </div>
-
-
-        <!-- DEMO NOTICE -->
-
-        <div class="notice">
-
-            <h3>Maintenance Notice</h3>
-
+        <div class="info-card">
+            <h3>02 — Trigger Jenkins</h3>
             <p>
-                Scheduled infrastructure maintenance may temporarily
-                affect selected services. No action is currently required.
+                The configured webhook sends a notification to Jenkins.
+                Jenkins automatically starts the configured pipeline.
             </p>
-
         </div>
 
-
-        <!-- NUMBERS -->
-
-        <div class="numbers">
-
-            <div class="number-box">
-                <small>Current Uptime</small>
-                <strong>99.98%</strong>
-            </div>
-
-            <div class="number-box">
-                <small>Average Response</small>
-                <strong>42 ms</strong>
-            </div>
-
-            <div class="number-box">
-                <small>Active Services</small>
-                <strong>04</strong>
-            </div>
-
+        <div class="info-card">
+            <h3>03 — Deliver</h3>
+            <p>
+                Jenkins executes build, test and deployment stages,
+                completing the CI/CD workflow automatically.
+            </p>
         </div>
 
+    </div>
 
-        <footer>
-            CloudPulse Infrastructure · Service Status Page
-        </footer>
+</main>
 
-    </main>
+<footer>
+    Jenkins Webhook Demo • CI/CD Learning Project
+</footer>
+```
 
 </body>
 </html>
-
