@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        TARGET_IP = '3.90.146.164'
+        TARGET_IP = '18.207.175.189'
         CRED_ID   = 'ec2-target-key'
         APP_DIR   = '/home/ec2-user/python-static-site'
     }
